@@ -2,7 +2,7 @@
 
 This document describes working of API (application programming interface) for fitting machine learning models. 
 
-[api.png]
+!(api.png)
 
 List of models which now are available: 
 
