@@ -30,5 +30,6 @@ In terminal:
     flask --app flaskapi --debug run
 
 or:
+
    sh init.sh 
 
