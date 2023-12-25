@@ -39,7 +39,6 @@ def get_model(model_id):
     """
     return models.get_model(model_id)
 
-
 @app.route("/api/update_model", methods = ['PUT'])
 def update_model():
     """
@@ -47,7 +46,6 @@ def update_model():
     """
     models.update_model(request.json)
     return 'Model updating - completed'
-
 
 @app.route("/api/delete_model/<int:model_id>", methods = ['DELETE'])
 def delete_model(model_id):
@@ -57,7 +55,6 @@ def delete_model(model_id):
     models.delete_model(model_id)
     return 'Model {} deleting - completed'.format(model_id)
 
-
 @app.route("/api/fit/<int:model_id>", methods = ['PUT'])
 def fit(model_id):
     """
@@ -65,7 +62,6 @@ def fit(model_id):
     """
     models.fit(model_id, **request.json)
     return 'Model {} fitting - completed'.format(model_id)
-
 
 @app.route("/api/predict/<int:model_id>", methods = ['GET', 'PUT'])
 def predict(model_id):
@@ -75,7 +71,6 @@ def predict(model_id):
     preds = models.predict(model_id, **request.json)
     return preds
 
-
 @app.route("/api/predict_proba/<int:model_id>", methods = ['GET', 'PUT'])
 def predict_proba(model_id):
     """
@@ -84,7 +79,6 @@ def predict_proba(model_id):
     model_scores = models.predict_proba(model_id, **request.json)
     return model_scores
 
-
 @app.route("/api/get_scores/<int:model_id>", methods = ['GET', 'PUT'])
 def get_scores(model_id):
     """
@@ -92,7 +86,6 @@ def get_scores(model_id):
     """
     scores = models.get_scores(model_id, **request.json)
     return scores
-
 
 if __name__ == '__main__':
     app.run()

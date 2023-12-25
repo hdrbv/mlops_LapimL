@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  minio:
+    image: minio/minio
+    container_name: minio_s3
+    command: server /data --console-address :9001
+    ports:
+      - "9001:9001"
+    volumes:
+      - ./minio/data:/data
+    env_file:
+      - ./.env
+      
+  api:
+    image: mlops_lapiml
+    container_name: mlops_lapiml
+    restart: always
+    epends_on:
+      - minio
+    ports:
+      - "7777:6755"  
+    volumes:
+      - ./src:/app/src  
+      - ./flaskapi.py:/app/flaskapi.py
+      - ./init.sh:/app/init.sh
+
