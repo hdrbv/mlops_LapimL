@@ -27,6 +27,7 @@ In terminal:
     flask --app flaskapi --debug run
 
 or:
+
     cd /path/to/your/dir/with/files/init.sh/from/github
     sh init.sh 
 
