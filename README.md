@@ -31,5 +31,5 @@ In terminal:
 
 or:
 
-   sh init.sh 
+    sh init.sh 
 
