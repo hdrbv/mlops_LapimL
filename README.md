@@ -2,11 +2,6 @@
 
 This document describes working of API (application programming interface) for fitting machine learning models. 
 
-\begin{figure}[h]
-	\centering
-	\includegraphics[width=1\linewidth]{api.png}
-	\caption{\textit{Created by genereative transformer}}
-\end{figure}
 
 List of models which now are available: 
 	1. Regression task (quality of models measured by MSE)
