@@ -2,6 +2,7 @@
 
 This document describes working of API (application programming interface) for fitting machine learning models. 
 
+
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=1\linewidth]{api}
