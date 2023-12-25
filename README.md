@@ -5,7 +5,7 @@ This document describes working of API (application programming interface) for f
 
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=1\linewidth]{api}
+	\includegraphics[width=0.5\linewidth]{api}
 	\caption{\textit{Created by genereative transformer}}
 \end{figure}
 
