@@ -13,7 +13,8 @@ COPY . .
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools==69.0.2 --no-input
+RUN pip install --no-cache-dir -r requirements.txt --no-input
 
 RUN chmod +x ./init.sh
 

@@ -1,19 +1,25 @@
-import numpy as np
-import pandas as pd
-from pandas.core.frame import DataFrame
 import os
-import flask
-from flask import abort, Response
+
 from collections import defaultdict
+from typing import Tuple, Dict, Union, Any
+
+import boto3
+import mlflow
+import pandas as pd
+
+from catboost import CatBoostClassifier, CatBoostRegressor
+from flask import abort, Response
+from pandas.core.frame import DataFrame
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, r2_score, f1_score, mean_squared_error
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 from statsmodels.discrete.discrete_model import Probit
-from catboost import CatBoostClassifier, CatBoostRegressor
-from sklearn.metrics import roc_auc_score, r2_score, f1_score, mean_squared_error
-from typing import Tuple, Dict, Union, Any
-import boto3
+
+
+mlflow.autolog()
 
 s3_client = boto3.client('s3',
                          endpoint_url='http://127.0.0.1:9000',

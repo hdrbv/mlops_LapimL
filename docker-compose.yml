@@ -1,7 +1,7 @@
 version: '3.9'
 
 networks:
-  api:
+  mlflow:
     driver: bridge
 
 services:
@@ -11,6 +11,8 @@ services:
     command: server /data --console-address :9001
     ports:
       - "9001:9001"
+    networks:
+      - mlflow
     volumes:
       - ./minio/data:/data
 #    env_file:
@@ -21,13 +23,15 @@ services:
     image: mlops_lapiml
     container_name: mlops_lapiml
     restart: always
-    networks:
-      - api
     depends_on:
       - minio
+    networks:
+      - mlflow
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     ports:
       - "7777:6755"
-      - "8081:5000"
+      - "127.0.0.1:8080:8080"
 #    volumes:
 #      - ./src:/app/src
 #      - ./flaskapi.py:/app/flaskapi.py
@@ -39,13 +43,12 @@ services:
     image: stilliard/pure-ftpd:latest
     container_name: ftpd_server
     environment:
-      - FTP_USER_NAME=mlflow
-      - FTP_USER_PASS=mlflow_password
-      - FTP_USER_HOME=/home/ftpusers/mlflow
       - PUBLICHOST=${HOST_IP}
     ports:
       - "21:21"
       - "30000-30009:30000-30009"
+    networks:
+      - mlflow
     volumes:
       - .\DockerData\volumes\ftp:/home/ftpusers
     env_file:
@@ -55,8 +58,11 @@ services:
     build: mlflow
     image: mlflow:latest
     container_name: mlflow
+    networks:
+      - mlflow
     environment:
       - ARTIFACT_ROOT=ftp://mlflow:mlflow_password@${HOST_IP}/data
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9001
     ports:
       - "5000:5000"
     volumes:
