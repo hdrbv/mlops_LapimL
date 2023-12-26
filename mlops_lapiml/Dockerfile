@@ -6,10 +6,16 @@ RUN wget https://dl.min.io/server/minio/release/linux-amd64/minio && \
     wget https://dl.min.io/client/mc/release/linux-amd64/mc && \
     chmod +x mc && \
     mv mc /usr/local/bin/
+
 WORKDIR /app
+
+COPY . .
+
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
-COPY src/ .
-COPY init.sh .
-COPY api.py .
-CMD ["sh", "init.sh"] && python flaskapi.py
+
+RUN chmod +x ./init.sh
+
+CMD ["sh", "init.sh"]
+

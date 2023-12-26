@@ -1,5 +1,9 @@
 version: '3.9'
 
+networks:
+  api:
+    driver: bridge
+
 services:
   minio:
     image: minio/minio
@@ -9,19 +13,55 @@ services:
       - "9001:9001"
     volumes:
       - ./minio/data:/data
-    env_file:
-      - ./.env
+#    env_file:
+#      - ./.env
       
   api:
+    build: mlops_lapiml
     image: mlops_lapiml
     container_name: mlops_lapiml
     restart: always
-    epends_on:
+    networks:
+      - api
+    depends_on:
       - minio
     ports:
-      - "7777:6755"  
-    volumes:
-      - ./src:/app/src  
-      - ./flaskapi.py:/app/flaskapi.py
-      - ./init.sh:/app/init.sh
+      - "7777:6755"
+      - "8081:5000"
+#    volumes:
+#      - ./src:/app/src
+#      - ./flaskapi.py:/app/flaskapi.py
+#      - ./init.sh:/app/init.sh
+    env_file:
+      - ./.env
 
+  ftpd_server:
+    image: stilliard/pure-ftpd:latest
+    container_name: ftpd_server
+    environment:
+      - FTP_USER_NAME=mlflow
+      - FTP_USER_PASS=mlflow_password
+      - FTP_USER_HOME=/home/ftpusers/mlflow
+      - PUBLICHOST=${HOST_IP}
+    ports:
+      - "21:21"
+      - "30000-30009:30000-30009"
+    volumes:
+      - .\DockerData\volumes\ftp:/home/ftpusers
+    env_file:
+      - ./.env
+
+  mlflow:
+    build: mlflow
+    image: mlflow:latest
+    container_name: mlflow
+    environment:
+      - ARTIFACT_ROOT=ftp://mlflow:mlflow_password@${HOST_IP}/data
+    ports:
+      - "5000:5000"
+    volumes:
+      - .\DockerData\volumes\mlflow:/app
+    depends_on:
+      - ftpd_server
+    env_file:
+      - ./.env

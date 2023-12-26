@@ -4,7 +4,6 @@ This document describes working of API (application programming interface) for f
 
 <image src="api.png" alt="Описание картинки">
 
-
 List of models which now are available: 
 	1. Regression task (quality of models measured by MSE)
 		* Ridge
@@ -30,4 +29,5 @@ or:
 
     cd /path/to/your/dir/with/files/init.sh/from/github
     sh init.sh 
+
 
