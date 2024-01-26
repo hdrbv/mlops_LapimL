@@ -3,3 +3,4 @@ Dockerfile
 LAPIML_SWAGGER.yml
 README.md
 .env
+!.dvc

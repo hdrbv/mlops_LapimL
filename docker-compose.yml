@@ -9,15 +9,38 @@ services:
     image: minio/minio
     container_name: minio_s3
     command: server /data --console-address :9001
-    ports:
-      - "9001:9001"
+#    ports:
+#      - "127.0.0.1:9000:9000"
+#      - "127.0.0.1:9001:9001"
+    expose:
+      - "9000"
+      - "9001"
     networks:
       - mlflow
     volumes:
       - ./minio/data:/data
-#    env_file:
-#      - ./.env
-      
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    env_file:
+      - ./.env
+
+  nginx:
+    image: nginx:1.19.2-alpine
+    container_name: nginx
+    hostname: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - mlflow
+    depends_on:
+      - minio
+
   api:
     build: mlops_lapiml
     image: mlops_lapiml
@@ -29,6 +52,7 @@ services:
       - mlflow
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://nginx:9000
     ports:
       - "7777:6755"
       - "127.0.0.1:8080:8080"
@@ -61,10 +85,10 @@ services:
     networks:
       - mlflow
     environment:
-      - ARTIFACT_ROOT=ftp://mlflow:mlflow_password@${HOST_IP}/data
-      - MLFLOW_S3_ENDPOINT_URL=http://minio:9001
+      - ARTIFACT_ROOT=ftp://mlflow:password@${HOST_IP}/data
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     volumes:
       - .\DockerData\volumes\mlflow:/app
     depends_on:

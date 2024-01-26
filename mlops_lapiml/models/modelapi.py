@@ -1,4 +1,6 @@
+import logging
 import os
+import pickle
 
 from collections import defaultdict
 from typing import Tuple, Dict, Union, Any
@@ -18,20 +20,24 @@ from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from statsmodels.discrete.discrete_model import Probit
 
-
 mlflow.autolog()
 
-s3_client = boto3.client('s3',
-                         endpoint_url='http://127.0.0.1:9000',
-                         aws_access_key_id='aws_access_key_id',
-                         aws_secret_access_key='aws_secret_access_key')
-key = f"lapiml_models.pkl"
+s3_client = boto3.client(
+    's3',
+    endpoint_url=os.getenv("MLFLOW_S3_ENDPOINT_URL", "http://127.0.0.1:9000"),
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", ""),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "")
+)
 
-metrics_dict = {'regression': mean_squared_error,
+S3_BUCKET_NAME = os.getenv("MLFLOW_S3_BUCKET_NAME", "mlopslapiml")
+
+KEY_MODEL = f"lapiml_models.pkl"
+
+METRICS_DICT = {'regression': mean_squared_error,
                 'binary': roc_auc_score,
                 'multiclass': f1_score}
 
-models_dict = {'regression': [Ridge],
+MODELS_DICT = {'regression': [Ridge],
                'binary': [LogisticRegression, CatBoostClassifier, DecisionTreeClassifier],
                'multiclass': [RandomForestClassifier, CatBoostClassifier, DecisionTreeClassifier]}
 
@@ -45,7 +51,7 @@ class ML_models:
         self.models = []
         self.fitted_models = []
         self.counter = 0
-        self.task_type = None
+        self.task_type = 'multiclass'
         self.available_models = defaultdict()
 
     def _get_task_type(self, data: dict, cutoff: int = 10) -> None:
@@ -54,6 +60,7 @@ class ML_models:
         data: training sample with target = target
         cutoff: threshold for regression task
         """
+
         target = pd.DataFrame(data)[['target']]
         if target.nunique()[0] == 2:
             self.task_type = 'binary'
@@ -66,9 +73,11 @@ class ML_models:
         """
         Define type of task and return list of models
         """
+
         self._get_task_type(target)
-        self.available_models[self.task_type] = {md.__name__: md for md in models_dict[self.task_type]}
-        to_print = [md.__name__ for md in models_dict[self.task_type]]
+        self.available_models[self.task_type] = {md.__name__: md for md in MODELS_DICT[self.task_type]}
+
+        to_print = [md.__name__ for md in MODELS_DICT[self.task_type]]
         return f"Current task '{self.task_type}':\n    Available models: {to_print}"
 
     def create_model(self, model_name: str = '', **kwargs) -> Dict:
@@ -77,28 +86,36 @@ class ML_models:
         dataset_name: name of dataset by user
         return: {'model_id', 'model_name', 'task_type' (defines automatic), 'model', 'scores'}
         """
-        self.counter += 1
-        ml_dic = {
-            'model_id': self.counter,
-            'model_name': None,
-            'task_type': self.task_type,
-            'model': 'Not fitted',
-            'scores': {},
-        }
-        fitted = {
-            'model_id': self.counter,
-            'model': 'Not fitted',
-        }
-        if model_name in self.available_models[self.task_type]:
-            ml_dic['model_name'] = model_name
-        else:
-            self.counter -= 1
-            abort(Response('''Wrong model name {}{}'''.format(model_name, self.available_models[self.task_type])))
-        self.models.append(ml_dic)
-        self.fitted_models.append(fitted)
-        data4pickle = pickle.dumps(self.models)
-        s3_client.put_object(Body=data4pickle, Bucket='lapiml_mlops', Key=key)
-        return ml_dic
+
+        with mlflow.start_run():
+
+            mlflow.set_tag(key='ml stage', value='create model')
+
+            self.counter += 1
+            ml_dic = {
+                'model_id': self.counter,
+                'model_name': None,
+                'task_type': self.task_type,
+                'model': 'Not fitted',
+                'scores': {},
+            }
+            fitted = {
+                'model_id': self.counter,
+                'model': 'Not fitted',
+            }
+
+            if self.available_models is None or model_name in MODELS_DICT:  # model_name in self.available_models.get(self.task_type):
+                ml_dic['model_name'] = model_name
+            else:
+                self.counter -= 1
+                abort(Response('''Wrong model name {}{}'''.format(model_name, self.available_models.get(self.task_type))))
+
+            self.models.append(ml_dic)
+            self.fitted_models.append(fitted)
+            data4pickle = pickle.dumps(self.models)
+            s3_client.put_object(Body=data4pickle, Bucket=S3_BUCKET_NAME, Key=KEY_MODEL)
+
+            return ml_dic
 
     def get_model(self, model_id: int) -> Dict:
         for model in self.models:
@@ -152,7 +169,7 @@ class ML_models:
         model_dict['model'] = 'Fitted'
         fitted_model['model'] = algo
         data4pickle = pickle.dumps(self.fitted_models)
-        s3_client.put_object(Body=data4pickle, Bucket='lapiml_mlops', Key=key)
+        s3_client.put_object(Body=data4pickle, Bucket=S3_BUCKET_NAME, Key=KEY_MODEL)
         return model_dict
 
     def predict(self, model_id, X, to_dict: bool = True, **kwargs) -> Union[DataFrame, Any]:
@@ -195,7 +212,7 @@ class ML_models:
             y_predicted = self.predict_proba(model_id, X, to_dict=False)
         else:
             y_predicted = self.predict(model_id, X, to_dict=False)
-        metrics = metrics_dict[self.task_type](y, y_predicted)
-        model_dict['scores'] = {metrics_dict[self.task_type].__name__: metrics}
+        metrics = METRICS_DICT[self.task_type](y, y_predicted)
+        model_dict['scores'] = {METRICS_DICT[self.task_type].__name__: metrics}
         model_dict['scores'] = round_dict_values(model_dict['scores'], 4)
         return model_dict
