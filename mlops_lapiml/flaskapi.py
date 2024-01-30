@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, abort, Response
 from flask_restx import Api
-from models.modelapi import ML_models
+from models.model_api import ML_models
 
 app = Flask(__name__)
 api = Api(app)

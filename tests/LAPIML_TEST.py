@@ -1,20 +1,6 @@
 import os
-import numpy as np
-import pandas as pd
-from pandas.core.frame import DataFrame
-import os
-import flask
-from flask import abort, Response
-from collections import defaultdict
-from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression, Ridge
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from statsmodels.discrete.discrete_model import Probit
-from catboost import CatBoostClassifier, CatBoostRegressor
-from sklearn.metrics import roc_auc_score, r2_score, f1_score, mean_squared_error
-from typing import Tuple, Dict, Union, Any
-import boto3
+
 from src.db.db_setup import Base
 from src.db import schemas
 from src.api.main import app, get_db, DataFrame, LinearModel, Model

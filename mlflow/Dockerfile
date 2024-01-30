@@ -7,5 +7,5 @@ RUN pip install --upgrade pip && \
 
 CMD mlflow server \
     --backend-store-uri sqlite:////app/mlruns.db \
-    --default-artifact-root $ARTIFACT_ROOT \
+    --default-artifact-root s3://$MLFLOW_S3_BUCKET_NAME/artifacts \
     --host 0.0.0.0

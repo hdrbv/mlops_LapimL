@@ -9,37 +9,16 @@ import boto3
 import mlflow
 import pandas as pd
 
-from catboost import CatBoostClassifier, CatBoostRegressor
+from catboost import CatBoostClassifier
 from flask import abort, Response
 from pandas.core.frame import DataFrame
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score, r2_score, f1_score, mean_squared_error
-from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import roc_auc_score, f1_score, mean_squared_error
 from sklearn.linear_model import LogisticRegression, Ridge
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from statsmodels.discrete.discrete_model import Probit
+from sklearn.tree import DecisionTreeClassifier
 
 mlflow.autolog()
-
-s3_client = boto3.client(
-    's3',
-    endpoint_url=os.getenv("MLFLOW_S3_ENDPOINT_URL", "http://127.0.0.1:9000"),
-    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", ""),
-    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "")
-)
-
-S3_BUCKET_NAME = os.getenv("MLFLOW_S3_BUCKET_NAME", "mlopslapiml")
-
-KEY_MODEL = f"lapiml_models.pkl"
-
-METRICS_DICT = {'regression': mean_squared_error,
-                'binary': roc_auc_score,
-                'multiclass': f1_score}
-
-MODELS_DICT = {'regression': [Ridge],
-               'binary': [LogisticRegression, CatBoostClassifier, DecisionTreeClassifier],
-               'multiclass': [RandomForestClassifier, CatBoostClassifier, DecisionTreeClassifier]}
 
 
 def round_dict_values(d, k):
@@ -48,6 +27,28 @@ def round_dict_values(d, k):
 
 class ML_models:
     def __init__(self):
+
+        self.S3_CLIENT = boto3.client(
+            's3',
+            endpoint_url=os.getenv("MLFLOW_S3_ENDPOINT_URL", "http://127.0.0.1:9000"),
+            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", ""),
+            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "")
+        )
+        self.S3_BUCKET_NAME = os.getenv("MLFLOW_S3_BUCKET_NAME", "mlopslapiml")
+
+        self.METRICS_DICT = {
+            'regression': mean_squared_error,
+            'binary': roc_auc_score,
+            'multiclass': f1_score
+        }
+        self.MODELS_DICT = {
+            'regression': [Ridge],
+            'binary': [LogisticRegression, CatBoostClassifier, DecisionTreeClassifier],
+            'multiclass': [RandomForestClassifier, CatBoostClassifier, DecisionTreeClassifier]
+        }
+
+        self.KEY_MODEL = f"lapiml_models.pkl"
+
         self.models = []
         self.fitted_models = []
         self.counter = 0
@@ -62,6 +63,7 @@ class ML_models:
         """
 
         target = pd.DataFrame(data)[['target']]
+
         if target.nunique()[0] == 2:
             self.task_type = 'binary'
         elif target.nunique()[0] > cutoff:
@@ -75,9 +77,10 @@ class ML_models:
         """
 
         self._get_task_type(target)
-        self.available_models[self.task_type] = {md.__name__: md for md in MODELS_DICT[self.task_type]}
+        self.available_models[self.task_type] = {md.__name__: md for md in self.MODELS_DICT[self.task_type]}
 
-        to_print = [md.__name__ for md in MODELS_DICT[self.task_type]]
+        to_print = [md.__name__ for md in self.MODELS_DICT[self.task_type]]
+
         return f"Current task '{self.task_type}':\n    Available models: {to_print}"
 
     def create_model(self, model_name: str = '', **kwargs) -> Dict:
@@ -104,16 +107,18 @@ class ML_models:
                 'model': 'Not fitted',
             }
 
-            if self.available_models is None or model_name in MODELS_DICT:  # model_name in self.available_models.get(self.task_type):
+            if self.available_models is None or model_name in self.MODELS_DICT:  # model_name in self.available_models.get(self.task_type):
                 ml_dic['model_name'] = model_name
             else:
                 self.counter -= 1
-                abort(Response('''Wrong model name {}{}'''.format(model_name, self.available_models.get(self.task_type))))
+                abort(
+                    Response('''Wrong model name {}{}'''.format(model_name, self.available_models.get(self.task_type))))
 
             self.models.append(ml_dic)
             self.fitted_models.append(fitted)
-            data4pickle = pickle.dumps(self.models)
-            s3_client.put_object(Body=data4pickle, Bucket=S3_BUCKET_NAME, Key=KEY_MODEL)
+
+            data4pickle = pickle.dumps(ml_dic)
+            self.S3_CLIENT.put_object(Body=data4pickle, Bucket=self.S3_BUCKET_NAME, Key=os.path.join("src", self.KEY_MODEL))
 
             return ml_dic
 
@@ -146,6 +151,8 @@ class ML_models:
         self.fitted_models.remove(fitted_model)
         self.models.remove(model)
 
+        # self.S3_CLIENT.delete_object(self.S3_BUCKET_NAME, self.KEY_MODEL)
+
     @staticmethod
     def _get_dataframe(data: dict) -> Tuple[DataFrame, Union[DataFrame, Any]]:
         """
@@ -153,23 +160,28 @@ class ML_models:
         """
         X = pd.DataFrame(data).drop(columns='target')
         target = pd.DataFrame(data)[['target']]
+
         return X, target
 
     def fit(self, model_id, data, **kwargs) -> Dict:
         X, y = self._get_dataframe(data)
         model_dict = self.get_model(model_id)
         fitted_model = self.get_fitted_model(model_id)
+
         if self.task_type == 'multiclass':
             params = {'random_state': 1488, 'loss_function': 'MultiClass'}
             algo = self.available_models[self.task_type][model_dict['model_name']](**params)
         else:
             params = {'random_state': 1488}
             algo = self.available_models[self.task_type][model_dict['model_name']](**params)
+
         algo.fit(X, y)
         model_dict['model'] = 'Fitted'
         fitted_model['model'] = algo
-        data4pickle = pickle.dumps(self.fitted_models)
-        s3_client.put_object(Body=data4pickle, Bucket=S3_BUCKET_NAME, Key=KEY_MODEL)
+
+        data4pickle = pickle.dumps(algo)
+        self.S3_CLIENT.put_object(Body=data4pickle, Bucket=self.S3_BUCKET_NAME, Key=self.KEY_MODEL)
+
         return model_dict
 
     def predict(self, model_id, X, to_dict: bool = True, **kwargs) -> Union[DataFrame, Any]:
@@ -180,15 +192,18 @@ class ML_models:
         _ = self.get_model(model_id)
         fitted_model = self.get_fitted_model(model_id)
         model = fitted_model['model']
-        predict = model.predict(X)
+        predict = model.predict(X, **kwargs)
+
         if to_dict:
             return pd.DataFrame(predict).to_dict()
+
         return predict
 
     def predict_proba(self, model_id, X, to_dict: bool = True, **kwargs) -> Union[DataFrame, Any]:
         X = pd.DataFrame(X)
         fitted_model = self.get_fitted_model(model_id)
         model = fitted_model['model']
+
         try:
             if self.task_type == 'multiclass':
                 model_scores = model.predict_proba(X)
@@ -196,8 +211,10 @@ class ML_models:
                 model_scores = model.predict_proba(X)[:, 1]
         except AttributeError:
             abort(Response(f'Models with task_type {self.task_type} has no method predict_proba'))
+
         if to_dict:
             return pd.DataFrame(model_scores).to_dict()
+
         return model_scores
 
     def get_scores(self, model_id, data, **kwargs) -> Dict:
@@ -212,7 +229,9 @@ class ML_models:
             y_predicted = self.predict_proba(model_id, X, to_dict=False)
         else:
             y_predicted = self.predict(model_id, X, to_dict=False)
-        metrics = METRICS_DICT[self.task_type](y, y_predicted)
-        model_dict['scores'] = {METRICS_DICT[self.task_type].__name__: metrics}
+
+        metrics = self.METRICS_DICT[self.task_type](y, y_predicted)
+        model_dict['scores'] = {self.METRICS_DICT[self.task_type].__name__: metrics}
         model_dict['scores'] = round_dict_values(model_dict['scores'], 4)
+
         return model_dict
