@@ -7,9 +7,9 @@ RUN wget https://dl.min.io/server/minio/release/linux-amd64/minio && \
     chmod +x mc && \
     mv mc /usr/local/bin/
 
-WORKDIR /app
+WORKDIR /mlops_lapiml
 
-COPY mlops_lapiml/requirements.txt .
+COPY requirements.txt .
 
 RUN pip install --upgrade pip setuptools==69.0.2 --no-input
 RUN pip install --no-cache-dir -r requirements.txt --no-input

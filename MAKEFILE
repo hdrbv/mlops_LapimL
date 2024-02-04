@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 TARGET = origin/master
-SRC = src/*
+SRC = mlops_lapiml/*
 
 define find.functions
 	@grep -E '^[a-zA-Z0-9 -]+:.*#'  Makefile | sort | while read -r l; do printf "\033[1;32m$$(echo $$l | cut -f 1 -d':')\033[00m:$$(echo $$l | cut -f 2- -d'#')\n"; done
@@ -32,7 +32,7 @@ format-path:
 	darker --revision $(TARGET) $(path)
 
 typecheck: 
-	mypy src/*.py
+	mypy mlops_lapiml/*.py
 
 typecheck-path: 
 	mypy $(path)

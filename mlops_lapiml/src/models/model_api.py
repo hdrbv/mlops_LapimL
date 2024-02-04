@@ -25,7 +25,7 @@ def round_dict_values(d, k):
     return {key: float(f"{value:.{k}f}") for key, value in d.items()}
 
 
-class ML_models:
+class Models:
     def __init__(self):
 
         self.S3_CLIENT = boto3.client(
@@ -47,7 +47,7 @@ class ML_models:
             'multiclass': [RandomForestClassifier, CatBoostClassifier, DecisionTreeClassifier]
         }
 
-        self.KEY_MODEL = f"lapiml_models.pkl"
+        self.KEY_MODEL = "lapiml_models.pkl"
 
         self.models = []
         self.fitted_models = []
@@ -62,11 +62,12 @@ class ML_models:
         cutoff: threshold for regression task
         """
 
-        target = pd.DataFrame(data)[['target']]
+        target = pd.DataFrame(data)
+        target = int(target.loc[:, 'target'])
 
-        if target.nunique()[0] == 2:
+        if target == 2:
             self.task_type = 'binary'
-        elif target.nunique()[0] > cutoff:
+        elif target > cutoff:
             self.task_type = 'regression'
         else:
             self.task_type = 'multiclass'

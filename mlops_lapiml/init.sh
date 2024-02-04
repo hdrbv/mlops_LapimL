@@ -17,11 +17,11 @@ dvc remote modify s3storage endpointurl $MLFLOW_S3_ENDPOINT_URL
 dvc remote modify s3storage access_key_id $AWS_ACCESS_KEY_ID
 dvc remote modify s3storage secret_access_key $AWS_SECRET_ACCESS_KEY
 
-dvc remote add src
-git add .gitignore src.dvc .dvc/config
+dvc add src
+git add src.dvc .dvc/config
 git commit -m "Starting work with DVC"
 dvc push --remote s3storage
 
 echo "Running web api"
-python flaskapi.py
+python src/flaskapi.py
 

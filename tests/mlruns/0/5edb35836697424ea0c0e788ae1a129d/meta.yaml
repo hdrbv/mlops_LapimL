@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/19113717/PycharmProjects/Archive/archive/tests/mlruns/0/5edb35836697424ea0c0e788ae1a129d/artifacts
+end_time: 1706983288261
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 5edb35836697424ea0c0e788ae1a129d
+run_name: clean-gull-355
+run_uuid: 5edb35836697424ea0c0e788ae1a129d
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1706983288220
+status: 4
+tags: []
+user_id: '19113717'

@@ -134,3 +134,4 @@ zc.lockfile==3.0.post1
 werkzeug
 
 mlflow
+moto==4.2.14

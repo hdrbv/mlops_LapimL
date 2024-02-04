@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify, abort, Response
 from flask_restx import Api
-from models.model_api import ML_models
+from models.model_api import Models
 
 app = Flask(__name__)
 api = Api(app)
-models = ML_models()
+
+models = Models()
 
 
 @app.route("/api/get_possible_model", methods=['GET', 'PUT'])

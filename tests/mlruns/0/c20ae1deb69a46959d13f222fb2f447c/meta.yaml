@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/19113717/PycharmProjects/Archive/archive/tests/mlruns/0/c20ae1deb69a46959d13f222fb2f447c/artifacts
+end_time: 1706983270089
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: c20ae1deb69a46959d13f222fb2f447c
+run_name: nervous-boar-796
+run_uuid: c20ae1deb69a46959d13f222fb2f447c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1706983270055
+status: 4
+tags: []
+user_id: '19113717'
