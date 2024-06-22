@@ -1,6 +1,6 @@
-# LAPIML: Launch API for ML models
+# APIML: API for ML models Launching
 
-This document describes working of API (application programming interface) for fitting machine learning models. 
+This document describes working of API (application programming interface) for deploying & fitting machine learning models. 
 
 <image src="api.png" alt="Описание картинки">
 
